@@ -17,15 +17,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 __author__ = "ITO Tsuyoshi"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __email__ = "ito.tsuyoshi.3a@kyoto-u.ac.jp"
-__date__ = "2020-03-24"
+__date__ = "2020-03-25"
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=
-                                     argparse.RawTextHelpFormatter)
+                                     formatter_class=argparse.
+                                     RawTextHelpFormatter)
     parser.add_argument("-i",
                         "--input",
                         action="store",
@@ -121,7 +121,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.threshold is None:
+    if args.threshold is None and not args.two_thresholds:
         print("Threshold was automatically set to be the one fourth of the "
               "ratio of sequence length of Y and X chromosomes. Use -t "
               "option if you want to manually specify threshold.\n")
@@ -129,6 +129,8 @@ def main():
     col_names = ["id", "sex", "nreads_ychrom", "nreads_xchrom", "ratio",
                  "threshold"]
     data = []
+    ratio = None
+    threshold = None
 
     for file_name in os.listdir(args.idxstats_dir):
 
@@ -158,8 +160,6 @@ def main():
                 print("Warning: Cant't find the specified name of Y or X "
                       "chromosome in " + file_name)
                 sex = "undetermined"
-                ratio = None
-                threshold = None
 
             else:
                 # This is for the option of minimum number of Y and X
@@ -207,11 +207,15 @@ def main():
 
     # This checks whether thresholds are different among samples,
     # which indicates that sequence length is different among samples
-    if len(df_sexing["threshold"].dropna().unique()) == 1:
+    if len(df_sexing["threshold"].dropna().unique()) <= 1:
         df_sexing.drop("threshold", axis=1).to_csv(args.out_dir + "/" +
                                                    "sexing.txt", index=False,
                                                    sep='\t')
-        print("threshold = " + str(threshold) + "\n")
+        if args.two_thresholds:
+            print("upper_threshold = " + str(args.upper_threshold))
+            print("lower_threshold = " + str(args.lower_threshold) + "\n")
+        else:
+            print("threshold = " + str(threshold) + "\n")
     else:
         df_sexing.to_csv(args.out_dir + "/" + "sexing.txt", index=False,
                          sep='\t')
@@ -220,7 +224,7 @@ def main():
     print("Results:")
     print(df_sexing["sex"].value_counts().to_frame())
 
-    # This is for the option of plotting figures+
+    # This is for the option of plotting figures
     if args.plot:
         try:
             # Scatter plot of the number of reads mapped on Y and X chromosomes
@@ -243,7 +247,7 @@ def main():
             else:
                 # If threshold is different among sample, the threshold line
                 # will not be shown
-                if len(df_sexing["threshold"].dropna().unique()) == 1:
+                if len(df_sexing["threshold"].dropna().unique()) <= 1:
                     plt.axvline(threshold, linewidth=0.5, label="threshold")
                     plt.legend()
                 plt.xlabel("Y/X ratio")
